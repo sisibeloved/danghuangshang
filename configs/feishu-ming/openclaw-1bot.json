@@ -1,5 +1,4 @@
 {
-  "_comment": "明朝飞书配置 - 1 Bot 基础版（最小配置）",
   "channels": {
     "feishu": {
       "enabled": true,
@@ -16,6 +15,12 @@
     }
   },
   "bindings": [
-    {"agentId": "silijian", "match": {"channel": "feishu", "account": "silijian"}}
+    {
+      "agentId": "silijian",
+      "match": {
+        "channel": "feishu",
+        "account": "silijian"
+      }
+    }
   ]
 }

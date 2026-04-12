@@ -4,7 +4,7 @@
       "your-provider": {
         "baseUrl": "https://your-llm-provider-api-url",
         "apiKey": "YOUR_LLM_API_KEY",
-        "api": "openai",
+        "api": "openai-completions",
         "models": [
           {
             "id": "fast-model",
@@ -215,7 +215,6 @@
           ],
           "maxConcurrent": 3
         },
-        "runTimeoutSeconds": 600,
         "workspace": "$HOME/clawd-hanlin_zhang"
       },
       {

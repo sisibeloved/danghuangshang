@@ -1,5 +1,4 @@
 {
-  "_comment": "现代飞书配置 - 1 Bot 基础版",
   "channels": {
     "feishu": {
       "enabled": true,
@@ -16,6 +15,12 @@
     }
   },
   "bindings": [
-    {"agentId": "ceo", "match": {"channel": "feishu", "account": "ceo"}}
+    {
+      "agentId": "ceo",
+      "match": {
+        "channel": "feishu",
+        "account": "ceo"
+      }
+    }
   ]
 }

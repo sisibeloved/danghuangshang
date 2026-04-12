@@ -1,5 +1,4 @@
 {
-  "_comment": "唐朝飞书配置 - 1 Bot 基础版",
   "channels": {
     "feishu": {
       "enabled": true,
@@ -16,6 +15,12 @@
     }
   },
   "bindings": [
-    {"agentId": "zhongshu", "match": {"channel": "feishu", "account": "zhongshu"}}
+    {
+      "agentId": "zhongshu",
+      "match": {
+        "channel": "feishu",
+        "account": "zhongshu"
+      }
+    }
   ]
 }

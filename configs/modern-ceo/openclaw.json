@@ -1,27 +1,28 @@
 {
-  "_comment": "现代企业制配置模板",
-  "_version": "2026.3.24",
-  "_regime": "modern-ceo",
-  "_description": "CEO 统一协调，CTO/CFO/COO 三线分立，国际化团队架构",
-  
   "models": {
     "providers": {
       "your-provider": {
         "baseUrl": "https://your-llm-provider-api-url",
         "apiKey": "YOUR_LLM_API_KEY",
-        "api": "openai",
+        "api": "openai-completions",
         "models": [
           {
             "id": "fast-model",
             "name": "Fast Model",
-            "input": ["text", "image"],
+            "input": [
+              "text",
+              "image"
+            ],
             "contextWindow": 200000,
             "maxTokens": 8192
           },
           {
             "id": "strong-model",
             "name": "Strong Model",
-            "input": ["text", "image"],
+            "input": [
+              "text",
+              "image"
+            ],
             "contextWindow": 200000,
             "maxTokens": 8192
           }
@@ -29,12 +30,10 @@
       }
     }
   },
-  
   "gateway": {
     "mode": "local",
     "port": 18789
   },
-  
   "agents": {
     "defaults": {
       "workspace": "/home/YOUR_USERNAME/clawd",
@@ -231,7 +230,6 @@
       }
     ]
   },
-  
   "channels": {
     "discord": {
       "enabled": true,
@@ -387,21 +385,104 @@
       }
     }
   },
-  
   "bindings": [
-    { "agentId": "board", "match": { "channel": "discord", "accountId": "board" } },
-    { "agentId": "ceo", "match": { "channel": "discord", "accountId": "ceo" } },
-    { "agentId": "cto", "match": { "channel": "discord", "accountId": "cto" } },
-    { "agentId": "coo", "match": { "channel": "discord", "accountId": "coo" } },
-    { "agentId": "cfo", "match": { "channel": "discord", "accountId": "cfo" } },
-    { "agentId": "cmo", "match": { "channel": "discord", "accountId": "cmo" } },
-    { "agentId": "eng", "match": { "channel": "discord", "accountId": "eng" } },
-    { "agentId": "prod", "match": { "channel": "discord", "accountId": "prod" } },
-    { "agentId": "qa", "match": { "channel": "discord", "accountId": "qa" } },
-    { "agentId": "sales", "match": { "channel": "discord", "accountId": "sales" } },
-    { "agentId": "cs", "match": { "channel": "discord", "accountId": "cs" } },
-    { "agentId": "hr", "match": { "channel": "discord", "accountId": "hr" } },
-    { "agentId": "legal", "match": { "channel": "discord", "accountId": "legal" } },
-    { "agentId": "data", "match": { "channel": "discord", "accountId": "data" } }
+    {
+      "agentId": "board",
+      "match": {
+        "channel": "discord",
+        "accountId": "board"
+      }
+    },
+    {
+      "agentId": "ceo",
+      "match": {
+        "channel": "discord",
+        "accountId": "ceo"
+      }
+    },
+    {
+      "agentId": "cto",
+      "match": {
+        "channel": "discord",
+        "accountId": "cto"
+      }
+    },
+    {
+      "agentId": "coo",
+      "match": {
+        "channel": "discord",
+        "accountId": "coo"
+      }
+    },
+    {
+      "agentId": "cfo",
+      "match": {
+        "channel": "discord",
+        "accountId": "cfo"
+      }
+    },
+    {
+      "agentId": "cmo",
+      "match": {
+        "channel": "discord",
+        "accountId": "cmo"
+      }
+    },
+    {
+      "agentId": "eng",
+      "match": {
+        "channel": "discord",
+        "accountId": "eng"
+      }
+    },
+    {
+      "agentId": "prod",
+      "match": {
+        "channel": "discord",
+        "accountId": "prod"
+      }
+    },
+    {
+      "agentId": "qa",
+      "match": {
+        "channel": "discord",
+        "accountId": "qa"
+      }
+    },
+    {
+      "agentId": "sales",
+      "match": {
+        "channel": "discord",
+        "accountId": "sales"
+      }
+    },
+    {
+      "agentId": "cs",
+      "match": {
+        "channel": "discord",
+        "accountId": "cs"
+      }
+    },
+    {
+      "agentId": "hr",
+      "match": {
+        "channel": "discord",
+        "accountId": "hr"
+      }
+    },
+    {
+      "agentId": "legal",
+      "match": {
+        "channel": "discord",
+        "accountId": "legal"
+      }
+    },
+    {
+      "agentId": "data",
+      "match": {
+        "channel": "discord",
+        "accountId": "data"
+      }
+    }
   ]
 }
