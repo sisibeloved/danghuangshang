@@ -8,19 +8,13 @@
 
 set -e
 
-CYAN='\033[0;36m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo ""
-echo -e "${CYAN}╔══════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║    🏯 AI 朝廷 · danghuangshang      ║${NC}"
-echo -e "${CYAN}║        完整安装向导                  ║${NC}"
-echo -e "${CYAN}╚══════════════════════════════════════╝${NC}"
+echo -e "\033[0;36m╔══════════════════════════════════════╗\033[0m"
+echo -e "\033[0;36m║    🏯 AI 朝廷 · danghuangshang      ║\033[0m"
+echo -e "\033[0;36m║        完整安装向导                  ║\033[0m"
+echo -e "\033[0;36m╚══════════════════════════════════════╝\033[0m"
 echo ""
 
 # ============================================
@@ -29,16 +23,30 @@ echo ""
 
 echo -e "${BLUE}[0/6] 准备环境...${NC}"
 
-INSTALL_DIR="$HOME/danghuangshang-installer"
-
-if [ -d "$INSTALL_DIR" ]; then
-  echo -e "  ${YELLOW}i${NC} 清理旧安装目录"
-  rm -rf "$INSTALL_DIR"
+# 加载共享函数（从脚本所在目录，本地运行时立即可用）
+if [ -f "$SCRIPT_DIR/install-common.sh" ]; then
+  source "$SCRIPT_DIR/install-common.sh"
 fi
 
-echo -e "  ${CYAN}正在克隆仓库...${NC}"
-git clone --depth 1 https://github.com/wanikua/danghuangshang.git "$INSTALL_DIR"
-echo -e "  ${GREEN}✓${NC} 仓库已克隆到：$INSTALL_DIR"
+# 定位仓库目录：优先用脚本所在仓库，找不到再克隆
+INSTALL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+if git -C "$INSTALL_DIR" rev-parse --git-dir &>/dev/null; then
+  echo -e "  ${GREEN}✓${NC} 使用本地仓库：$INSTALL_DIR"
+else
+  INSTALL_DIR="$HOME/danghuangshang-installer"
+  if [ -d "$INSTALL_DIR" ]; then
+    echo -e "  ${YELLOW}i${NC} 清理旧安装目录"
+    rm -rf "$INSTALL_DIR"
+  fi
+
+  echo -e "  ${CYAN}正在克隆仓库...${NC}"
+  git clone --depth 1 https://github.com/wanikua/danghuangshang.git "$INSTALL_DIR"
+  echo -e "  ${GREEN}✓${NC} 仓库已克隆到：$INSTALL_DIR"
+
+  # 远程克隆后加载共享函数
+  source "$INSTALL_DIR/scripts/install-common.sh"
+fi
 
 cd "$INSTALL_DIR"
 
@@ -49,31 +57,8 @@ cd "$INSTALL_DIR"
 echo ""
 echo -e "${BLUE}[1/6] 检查环境...${NC}"
 
-if command -v openclaw &>/dev/null; then
-  OPENCLAW_VERSION=$(openclaw --version 2>/dev/null || echo "unknown")
-  echo -e "  ${GREEN}✓${NC} OpenClaw 已安装：$OPENCLAW_VERSION"
-else
-  echo -e "  ${RED}✗${NC} OpenClaw 未安装"
-  echo ""
-  echo "  正在安装 OpenClaw..."
-  npm install -g openclaw
-  echo -e "  ${GREEN}✓${NC} OpenClaw 已安装"
-fi
-
-if ! command -v jq &>/dev/null; then
-  echo -e "  ${YELLOW}⚠${NC} jq 未安装，正在安装..."
-  if command -v apt &>/dev/null; then
-    sudo apt update && sudo apt install -y jq
-  elif command -v brew &>/dev/null; then
-    brew install jq
-  else
-    echo -e "  ${RED}✗${NC} 请手动安装 jq"
-    exit 1
-  fi
-  echo -e "  ${GREEN}✓${NC} jq 已安装"
-else
-  echo -e "  ${GREEN}✓${NC} jq 已安装"
-fi
+check_openclaw
+check_jq
 
 echo ""
 
@@ -126,38 +111,12 @@ echo ""
 # ============================================
 
 # ============================================
-# 步骤 2.5: 配置 LLM API (新增)
+# 步骤 2.5: 配置 AI 模型（智能检测）
 # ============================================
 
 echo ""
 echo -e "${BLUE}[2.5/7] 配置 AI 模型...${NC}"
-echo ""
-echo "  常用 API 提供商："
-echo "  - DeepSeek: https://platform.deepseek.com"
-echo "  - OpenAI: https://platform.openai.com"
-echo "  - Anthropic: https://console.anthropic.com"
-echo "  - OpenRouter: https://openrouter.ai"
-echo "  - DashScope (通义千问): https://dashscope.aliyun.com"
-echo ""
-
-read -p "  API Base URL (如 https://api.deepseek.com/v1): " LLM_API_URL
-read -s -p "  API Key: " LLM_API_KEY
-echo ""
-read -p "  模型 ID (如 deepseek-chat, gpt-4o, claude-sonnet-4-20250514): " LLM_MODEL_ID
-echo ""
-
-if [ -z "$LLM_API_URL" ] || [ -z "$LLM_API_KEY" ] || [ -z "$LLM_MODEL_ID" ]; then
-  echo -e "${RED}✗ API 配置不能为空${NC}"
-  exit 1
-fi
-
-# 自动检测 API 格式
-LLM_API_FORMAT="openai"
-if echo "$LLM_API_URL" | grep -qi "anthropic"; then
-  LLM_API_FORMAT="anthropic-messages"
-fi
-
-echo -e "  ${GREEN}✓${NC} API 配置完成"
+configure_llm
 echo ""
 
 # 步骤 3: 备份现有配置
@@ -165,22 +124,18 @@ echo ""
 
 echo -e "${BLUE}[4/7] 配置处理...${NC}"
 
-CONFIG_DIR="$HOME/.openclaw"
-CLAWDBOT_CONFIG="$HOME/.clawdbot/openclaw.json"
-CONFIG_FILE="$CONFIG_DIR/openclaw.json"
+# 复用 configure_llm 已检测到的配置路径（或重新检测）
+if [ -z "$OPENCLAW_CONFIG_FILE" ]; then
+  detect_config_path
+fi
 
-# 检测配置目录
-if [ -f "$CLAWDBOT_CONFIG" ] && [ ! -f "$CONFIG_FILE" ]; then
-  CONFIG_DIR="$HOME/.clawdbot"
-  CONFIG_FILE="$CLAWDBOT_CONFIG"
-  echo -e "  ${YELLOW}i${NC} 使用 .clawdbot 配置目录"
-elif [ -f "$CONFIG_FILE" ]; then
-  echo -e "  ${YELLOW}i${NC} 使用 .openclaw 配置目录"
-elif [ -f "$CLAWDBOT_CONFIG" ]; then
-  CONFIG_DIR="$HOME/.clawdbot"
-  CONFIG_FILE="$CLAWDBOT_CONFIG"
-  echo -e "  ${YELLOW}i${NC} 使用 .clawdbot 配置目录"
+if [ -n "$OPENCLAW_CONFIG_FILE" ]; then
+  CONFIG_DIR="$(dirname "$OPENCLAW_CONFIG_FILE")"
+  CONFIG_FILE="$OPENCLAW_CONFIG_FILE"
+  echo -e "  ${YELLOW}i${NC} 使用配置目录：$CONFIG_DIR"
 else
+  CONFIG_DIR="$HOME/.openclaw"
+  CONFIG_FILE="$CONFIG_DIR/openclaw.json"
   echo -e "  ${YELLOW}i${NC} 将创建新配置"
 fi
 
@@ -257,12 +212,19 @@ else
   echo -e "  ${YELLOW}i${NC} 使用模板中的内置人设"
 fi
 
+# 注入手动输入的 LLM 配置（仅当不复用现有配置时）
+if [ "$REUSE_MODELS" = "false" ]; then
+  echo -e "  ${CYAN}正在注入 LLM 配置...${NC}"
+  inject_llm_config "$CONFIG_FILE"
+fi
+
 # 恢复凭据
 if [ "$EXISTING_KEYS" != "{}" ]; then
   echo -e "  ${CYAN}正在恢复凭据...${NC}"
-  
-  has_providers=$(echo "$EXISTING_KEYS" | jq '.models_providers != null' 2>/dev/null)
-  if [ "$has_providers" = "true" ]; then
+
+  # 仅在复用模式或无手动输入时恢复模型提供者
+  _should_restore_providers=$(echo "$EXISTING_KEYS" | jq '.models_providers != null' 2>/dev/null)
+  if [ "$_should_restore_providers" = "true" ] && [ "$REUSE_MODELS" = "true" ]; then
     jq --argjson providers "$(echo "$EXISTING_KEYS" | jq '.models_providers')" \
       '.models.providers = $providers' \
       "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
@@ -353,12 +315,16 @@ else
   echo -e "  ${YELLOW}⚠${NC} 有 $((agent_total - persona_total)) 个 Agent 缺少人设"
 fi
 
-has_real_key=$(jq -r '[.models.providers[].apiKey // "" | select(. != "" and . != "YOUR_LLM_API_KEY")] | length' "$CONFIG_FILE" 2>/dev/null || echo 0)
+has_real_provider=$(jq -r '
+  [.models.providers | to_entries[] |
+    select(.value.baseUrl // "" | . != "" and (. | startswith("https://your-") | not))
+  ] | length
+' "$CONFIG_FILE" 2>/dev/null || echo 0)
 
-if [ "$has_real_key" -gt 0 ]; then
-  echo -e "  ${GREEN}✓${NC} API Key 已配置"
+if [ "$has_real_provider" -gt 0 ]; then
+  echo -e "  ${GREEN}✓${NC} 模型配置已就绪"
 else
-  echo -e "  ${YELLOW}⚠${NC} 请配置 LLM API Key"
+  echo -e "  ${YELLOW}⚠${NC} 请配置 LLM 模型"
   echo -e "     ${CYAN}nano $CONFIG_FILE${NC}"
 fi
 
@@ -393,19 +359,27 @@ echo -e "${GREEN}✓ 安装完成！${NC}"
 echo ""
 echo -e "  制度：${GREEN}$TARGET_REGIME${NC}"
 echo -e "  配置：${CYAN}$CONFIG_FILE${NC}"
-echo -e "  临时安装目录：${YELLOW}$INSTALL_DIR${NC}"
-echo ""
-read -p "是否删除临时安装目录？(y/n) " CLEANUP
-if [ "$CLEANUP" = "y" ] || [ "$CLEANUP" = "Y" ]; then
-  rm -rf "$INSTALL_DIR"
-  echo -e "  ${GREEN}✓${NC} 已清理临时目录"
+
+if [ "$INSTALL_DIR" = "$HOME/danghuangshang-installer" ]; then
+  echo -e "  临时安装目录：${YELLOW}$INSTALL_DIR${NC}"
+  echo ""
+  read -p "是否删除临时安装目录？(y/n) " CLEANUP
+  if [ "$CLEANUP" = "y" ] || [ "$CLEANUP" = "Y" ]; then
+    rm -rf "$INSTALL_DIR"
+    echo -e "  ${GREEN}✓${NC} 已清理临时目录"
+    INSTALL_DIR=""
+  fi
+else
+  echo -e "  仓库目录：${CYAN}$INSTALL_DIR${NC}"
 fi
 echo ""
-echo "后续操作:"
+echo -e "后续操作:"
 echo ""
-echo "  查看状态：${CYAN}openclaw status${NC}"
-echo "  切换制度：${CYAN}bash $INSTALL_DIR/scripts/switch-regime.sh${NC}"
-echo "  恢复人设：${CYAN}bash $INSTALL_DIR/scripts/init-personas.sh${NC}"
+echo -e "  查看状态：${CYAN}openclaw status${NC}"
+if [ -n "$INSTALL_DIR" ]; then
+  echo -e "  切换制度：${CYAN}bash $INSTALL_DIR/scripts/switch-regime.sh${NC}"
+  echo -e "  恢复人设：${CYAN}bash $INSTALL_DIR/scripts/init-personas.sh${NC}"
+fi
 echo ""
 echo -e "${CYAN}═══════════════════════════════════════${NC}"
 echo ""
