@@ -248,6 +248,11 @@ if [ "$EXISTING_KEYS" != "{}" ]; then
   fi
 fi
 
+# 替换模板占位符（workspace 路径、model provider 引用）
+echo -e "  ${CYAN}正在替换模板占位符...${NC}"
+fix_template_placeholders "$CONFIG_FILE"
+echo -e "    ${GREEN}✓${NC} 占位符已替换"
+
 # 标记制度
 jq --arg regime "$TARGET_REGIME" '._regime = $regime' \
   "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"

@@ -135,3 +135,66 @@ inject_llm_config() {
     "$config_file" > "${config_file}.tmp" && mv "${config_file}.tmp" "$config_file"
   echo -e "    ${GREEN}✓${NC} LLM 配置已注入（提供者：$provider_key）"
 }
+
+# 替换模板占位符：workspace 路径、model provider 引用
+# 参数: $1 = 配置文件路径, $2 = 实际 provider 名（可选，复用时从文件读取）
+fix_template_placeholders() {
+  local config_file="$1"
+  local actual_home="$HOME"
+
+  # 1. 替换 workspace 路径中的 $HOME 和 /home/YOUR_USERNAME
+  jq --arg home "$actual_home" '
+    # agents.defaults.workspace
+    if .agents.defaults.workspace then
+      .agents.defaults.workspace |= (
+        gsub("/home/YOUR_USERNAME"; $home) |
+        gsub("\\$HOME"; $home)
+      )
+    else . end
+    |
+    # 每个 agent 的 workspace
+    if .agents.list then
+      .agents.list |= map(
+        if .workspace then
+          .workspace |= (
+            gsub("/home/YOUR_USERNAME"; $home) |
+            gsub("\\$HOME"; $home)
+          )
+        else . end
+      )
+    else . end
+  ' "$config_file" > "${config_file}.tmp" && mv "${config_file}.tmp" "$config_file"
+
+  # 2. 替换 model 引用中的 provider 名称
+  # 找到配置文件中第一个真实 provider（有非占位 baseUrl 的）
+  local real_provider
+  real_provider=$(jq -r '
+    [.models.providers | to_entries[] |
+      select(.value.baseUrl // "" | . != "" and (. | startswith("https://your-") | not))
+    ][0].key // "your-provider"
+  ' "$config_file" 2>/dev/null)
+
+  if [ "$real_provider" != "your-provider" ]; then
+    jq --arg old "your-provider/" --arg new "$real_provider/" '
+      # agents.defaults.model
+      if .agents.defaults.model then
+        .agents.defaults.model |= (
+          if .primary then .primary |= gsub($old; $new) else . end |
+          if .secondary then .secondary |= gsub($old; $new) else . end
+        )
+      else . end
+      |
+      # 每个 agent 的 model
+      if .agents.list then
+        .agents.list |= map(
+          if .model then
+            .model |= (
+              if .primary then .primary |= gsub($old; $new) else . end |
+              if .secondary then .secondary |= gsub($old; $new) else . end
+            )
+          else . end
+        )
+      else . end
+    ' "$config_file" > "${config_file}.tmp" && mv "${config_file}.tmp" "$config_file"
+  fi
+}
